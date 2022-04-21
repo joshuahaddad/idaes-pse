@@ -311,7 +311,6 @@ argument).""",
             / diameter**5
             * flow
             * abs(flow)
-            / pressure
         )
         return friction_term
 
@@ -360,20 +359,21 @@ argument).""",
         cv = self.control_volume
         # TODO: Units of these equations should probably not
         # be hard-coded. These should be configurable.
-        kgm2hr2 = pyunits.kg / pyunits.m**2 / pyunits.hr**2
+        kgm2hr2 = pyunits.kg / pyunits.m**2 / pyunits.hr**2 * pyunits.bar
 
         def momentum_balance_rule(b, t, x):
             # TODO: Should probably avoid having unit conversion calls
             # inside this function, as it will be called for every time/space
             # index.
+            pressure = cv.properties[t, x].pressure
             if dynamic:
                 accum_expr = pyunits.convert(
-                    cv.flow_mass_dt[t, x] / cv.area,
+                    cv.flow_mass_dt[t, x] / cv.area * pressure,
                     kgm2hr2,
                 )
             else:
                 accum_expr = 0.0
-            flux_expr = pyunits.convert(cv.pressure_dx[t, x] / cv.length, kgm2hr2)
+            flux_expr = pyunits.convert(cv.pressure_dx[t, x] / cv.length * pressure, kgm2hr2)
             friction_expr = pyunits.convert(self.get_friction_term(t, x), kgm2hr2)
             return accum_expr + flux_expr + friction_expr == 0
 
